@@ -1,248 +1,179 @@
 <div align="center">
-  <img width="80%" src="https://github.com/user-attachments/assets/43667e33-d02d-4a0e-8ca9-fd1cf411b24a"><br/><br/>
-  <a href="./README.md">English</a> | <a href="./Resources/README-zh.md">中文</a> | <a href="./Resources/README-tr.md">Türkçe</a> | <a href="./Resources/README-de.md">Deutsch</a>
+  <img width="140" src="./Resources/AppIcon.png" alt="OpenInTerminal Icon" />
+  <h1>OpenInTerminal（极简深度定制版）</h1>
+  <p><strong>在 macOS 访达（Finder）中一键直达终端与代码编辑器 —— 适配 macOS 26 / 27、极简设置、开箱即用</strong></p>
+  <p>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
+    <img src="https://img.shields.io/badge/Platform-macOS%2012.0%2B%20%7C%20macOS%2026%2F27-black.svg" alt="macOS 12+">
+    <img src="https://img.shields.io/badge/Language-Swift%205-orange.svg" alt="Swift 5">
+    <a href="https://github.com/Ji4n1ng/OpenInTerminal"><img src="https://img.shields.io/badge/Upstream-Ji4n1ng%2FOpenInTerminal-green.svg" alt="Upstream"></a>
+  </p>
+  <p>
+    <a href="#为什么做这个版本">为什么做这个版本</a> ·
+    <a href="#核心能力与深度定制">核心能力</a> ·
+    <a href="#架构与工作原理">架构解析</a> ·
+    <a href="#支持的应用生态">支持生态</a> ·
+    <a href="#安装与使用">安装与构建</a> ·
+    <a href="./Resources/README-Config-zh.md">详细配置与排错</a>
+  </p>
 </div>
 
-## How to use 🚀
+> **English TL;DR:** A streamlined, macOS 26+/27-ready fork of [Ji4n1ng/OpenInTerminal](https://github.com/Ji4n1ng/OpenInTerminal) under the **MIT License**. Fixes preference persistence and Finder Sync menu issues on macOS 26/27 without requiring an Apple Developer App Group provisioning profile, trims the Preferences UI down to a clean General-only pane, ships developer-first defaults (`Launch at Login`, `Quick Toggle → Open Terminal`, `iTerm`, `Sublime Text`), and features a redesigned dual-tone circuit maple leaf icon set.
 
-| Core Features | OpenInTerminal |
+---
+
+## 为什么做这个版本？
+
+对于每天在 macOS 上写代码、查日志、处理项目文件的开发者来说，**「在当前 Finder 目录快速打开终端或编辑器」**是最高频的动作之一。每次打开终端手动 `cd` 或把文件夹拖进窗口，都会打断心流。
+
+[OpenInTerminal](https://github.com/Ji4n1ng/OpenInTerminal) 一直是 macOS 生态中最经典的开源解决方案，但在最新 **macOS 26 / 27** 环境下使用原版 v2.3.9 时，实际体验存在几个明显痛点：
+
+1. **偏好设置重启丢失**：原版依赖 App Group 容器（`group.wang.jianing.app.OpenInTerminal`）在主应用与沙盒 Finder 扩展之间共享配置；在 macOS 26/27 及无付费签名描述文件的本地构建中，`cfprefsd` 会拒绝写入该 Group 容器，导致每次重启应用都重新触发 `First Setup`，所有配置清空。
+2. **偏好设置界面偏冗余**：日常 99% 的场景只需要设置默认终端、默认编辑器与菜单栏一键快启，「自定义」「高级」「关于」三个标签页反而增加了理解与视觉负担。
+3. **默认配置不够贴合开发者习惯**：首次启动默认是系统自带的 `Terminal` + `TextEdit`，且未开启开机自启与菜单栏左键一键快启，每次初始化都需要手动改一遍。
+4. **本地构建与视觉辨识度**：希望拥有更具辨识度的菜单栏彩色图标与应用图标，且在本地无付费开发者账号的情况下依然能稳定签名、持久保存配置并正常注册 Finder 扩展。
+
+本仓库基于上游最新 `oit-001/integration` 分支，针对上述问题进行了深度整合、精简与视觉重塑。
+
+---
+
+## 核心能力与深度定制
+
+### 1. macOS 26 / 27 偏好设置持久化与 Finder 扩展修复
+- **去 App Group 化持久化**：主应用改将偏好设置直接写入自身标准域 `wang.jianing.app.OpenInTerminal`，彻底解决 macOS 26 / 27 下重启即触发 `First Setup`、配置无法落盘的问题。
+- **沙盒安全快照同步**：主应用启动、修改配置或退出时，会通过原子临时文件（权限严格锁定 `0600`）向 Finder 扩展的 `Application Scripts` 目录发布只读快照 `shared-settings.plist`；沙盒内的 Finder 扩展每次构建右键/工具栏菜单时即时加载最新快照，**无需付费开发者描述文件，也无需「完全磁盘访问权限」**。
+- **修复开机自启与 Finder 扩展注册**：移除主应用 `Info.plist` 中误配的 `NSExtension` 字典，修复登录项辅助程序 `OpenInTerminalHelper` 中错误的 `mainAppIdentifier`，并补全侧边栏右键菜单支持。
+
+### 2. 极简主义偏好设置（仅保留「通用」面板）
+- 移除了「自定义（Custom）」「高级（Advanced）」「关于（About）」三个标签页，并自动隐藏多余的顶部标签栏工具条。
+- 窗口尺寸精确贴合「通用」面板，所有高频选项一屏呈现：
+  - 开机自动启动
+  - 菜单栏快速启动（左键一键直达，右键呼出菜单）
+  - 隐藏状态栏图标 / 隐藏右键菜单项 / 右键菜单归入子菜单
+  - 默认终端 & 默认编辑器选择
+
+### 3. 开发者开箱即用默认值
+首次启动或重置配置时，无需繁琐调整即可直接进入高效工作流：
+- **开机自动启动**：默认开启（并同步调用 `SMLoginItemSetEnabled` 注册系统登录项）
+- **菜单栏快速启动**：默认开启，动作默认为「打开终端」（左键点击菜单栏图标即在当前访达目录秒开终端，右键展开完整菜单）
+- **默认终端**：`iTerm`
+- **默认编辑器**：`Sublime Text`
+
+### 4. 定制视觉图标体系
+基于双色电路枫叶徽章为三个 macOS 渲染场景分别做了像素级优化：
+- **状态栏（菜单栏）图标**：去底抠图、移除文字与外框杂边、微锐化与高饱和增强，提供 `1x / 2x / 3x`（`22 / 44 / 66 px`）彩色透明 PNG，深色/浅色菜单栏均清晰醒目。
+- **Finder 工具栏图标**：独立生成的单色模板（Template）双半枫叶剪影，带中缝镂空，原生自适应系统深浅色与高亮态。
+- **应用图标（`AppIcon.icns`）**：遵循 macOS 圆角矩形（Squircle）规范，深色六边形纹理底 + 居中圆形双色电路枫叶徽章 + 微妙内描边与投影，覆盖 `16×16` 至 `1024×1024` 全分辨率。
+
+### 5. 安全加固与现代开发生态支持
+- **杜绝路径命令注入**：Finder 沙盒扩展执行 AppleScript 时改用离散参数列表（`argv` + AppleScript `quoted form of` 逐项安全转义），包含空格、引号或特殊符号的文件夹名也能安全打开。
+- **LaunchServices 应用发现**：优先通过系统 `LaunchServices` 按 Bundle ID 检测已安装应用，不受自定义安装目录或目录读取错误影响，同时自动排除废纸篓、Time Machine 备份与只读 DMG 镜像中的副本。
+- **Obsidian 活动笔记联动**：当 Obsidian 处于前台时，支持直接定位当前笔记所在目录打开终端，或用默认编辑器打开当前笔记文件。
+
+---
+
+## 架构与工作原理
+
+`OpenInTerminal` 采用标准的 macOS 多目标协作架构，由 4 个紧密配合的模块组成：
+
+```mermaid
+flowchart LR
+    User["用户操作<br/>菜单栏左键 / 右键 / Finder 右键与工具栏"]
+
+    subgraph Host["OpenInTerminal.app（主进程，非沙盒）"]
+        App["AppDelegate & StatusMenuController"]
+        Pref["PreferencesWindowController<br/>仅保留通用设置"]
+        PrefsStore[("UserDefaults<br/>wang.jianing.app.OpenInTerminal")]
+    end
+
+    subgraph Helper["OpenInTerminalHelper.app"]
+        LoginItem["LoginItem 登录项守护"]
+    end
+
+    subgraph Core["OpenInTerminalCore.framework"]
+        SharedPrefs["SharedPreferences<br/>原子快照同步"]
+        FinderMgr["FinderManager<br/>ScriptingBridge / Obsidian CLI / LaunchServices"]
+        Launcher["App / ScriptManager<br/>安全参数数组启动"]
+    end
+
+    subgraph Ext["OpenInTerminalFinderExtension.appex（沙盒）"]
+        FinderSync["FIFinderSync 扩展"]
+    end
+
+    Snapshot[("Application Scripts<br/>shared-settings.plist (0600)<br/>generalScript.scpt")]
+
+    User --> App
+    User --> FinderSync
+    LoginItem -->|"登录时拉起"| Host
+    App --> Pref
+    App --> Core
+    FinderSync --> Core
+    PrefsStore <--> SharedPrefs
+    SharedPrefs -->|"0600 原子写入"| Snapshot
+    Snapshot -->|"只读加载 & NSUserAppleScriptTask"| FinderSync
+    Launcher -->|"open -a & 离散参数"| Target["iTerm / Ghostty / VS Code / Sublime Text ..."]
+```
+
+### 路径解析优先级
+当你触发「打开终端 / 编辑器 / 复制路径」时，遵循以下确定性顺序：
+1. 若最前端应用为 **Obsidian**（且启用了 Obsidian CLI），定位当前活动笔记文件或其所在目录；
+2. 否则读取 **Finder** 当前选中的文件或文件夹；
+3. 若未选中具体条目，读取最前端 **Finder 窗口** 的当前目录；
+4. 若无打开的 Finder 窗口，则优雅回退到当前用户的 **Desktop（桌面）** 目录。
+
+---
+
+## 支持的应用生态
+
+| 分类 | 支持的应用 |
 | --- | --- |
-| Open items (e.g., folders or files) in Terminal or Editor. | ![](https://user-images.githubusercontent.com/11001224/78589385-b797b880-7872-11ea-9062-c11a49461598.gif) | 
-| Open the selected item in your preferred apps (e.g., Github Desktop, Fork). | ![](https://user-images.githubusercontent.com/11001224/104891620-28483580-59ac-11eb-9fb5-3e4dec7863cc.gif) |
+| **终端（Terminals）** | iTerm、Terminal、Ghostty、Warp、WezTerm、kitty、Alacritty、Tabby、Hyper、cmux、Kaku、Otty |
+| **代码编辑器（Editors）** | Sublime Text、Visual Studio Code、VS Code Insiders、Cursor、Zed、Xcode、Nova、VSCodium、BBEdit、TextMate、CotEditor、Glim、Typora、Obsidian、MacVim、Neovim、Emacs、TextEdit、Atom |
+| **JetBrains 全家桶** | IntelliJ IDEA、PyCharm、WebStorm、GoLand、CLion、PhpStorm、RubyMine、AppCode、Fleet、Android Studio（支持 JetBrains Toolbox 目录自动扫描） |
+| **Git 客户端** | GitHub Desktop、Fork、GitKraken |
 
-### More features
+---
 
-| Features | OpenInTerminal | OpenInTerminal-Lite & OpenInEditor-Lite |
-| --- | --- | --- |
-| Support Terminal, [iTerm](https://www.iterm2.com/), [Hyper](https://github.com/zeit/hyper), [Alacritty](https://github.com/jwilm/alacritty), [kitty](https://sw.kovidgoyal.net/kitty/), [Warp](https://www.warp.dev), [WezTerm](https://wezfurlong.org/wezterm/index.html), [Tabby](https://tabby.sh), [Ghostty](https://ghostty.org/), [cmux](https://github.com/manaflow-ai/cmux), [Otty](https://otty.sh/). | ✅ | ✅ |
-| Support TextEdit, Xcode, [Visual Studio Code](https://code.visualstudio.com/), [VSCode Insiders](https://code.visualstudio.com/insiders/), [Atom](https://atom.io/), [Sublime Text](https://www.sublimetext.com/), [VSCodium](https://github.com/VSCodium/vscodium), [BBEdit](https://www.barebones.com/products/bbedit/), [TextMate](https://macromates.com), [CotEditor](https://coteditor.com/), [MacVim](https://github.com/macvim-dev/macvim), [JetBrains](https://www.jetbrains.com/)(AppCode, CLion, GoLand, IntelliJ IDEA, PhpStorm, PyCharm, RubyMine, WebStorm, Android Studio, Fleet), [Glim](https://github.com/NeoPanic/Glim), [Typora](https://typora.io/), [Obsidian](https://obsidian.md/), [Nova](https://nova.app/), [Cursor](https://cursor.sh/), [notepad--](https://github.com/cxasm/notepad--), [neovim](https://neovim.io/). | ✅ | ✅ |
-| Open in custom apps. (⚠️ Not all apps support.) | ✅ | ✅ |
-| Support English, Chinese, French, Russian, Italian, Spanish, Turkish, German and Korean | ✅ | ✅ |
-| GUI preferences | ✅ | ❌ |
-| Support keyboard shortcuts. | ✅ | ❌ |
+## 安装与使用
 
-## OpenInTerminal vs OpenInTerminal-Lite 👀
+### 方式一：直接下载 Release（推荐）
+1. 前往本仓库 [Releases](https://github.com/biqiufeng/OpenInTerminal/releases) 下载 `OpenInTerminal.zip` 并解压，将 `OpenInTerminal.app` 拖入 `/Applications`。
+2. 由于本版本为个人开源 ad-hoc 签名构建，首次启动前请执行以下命令移除 macOS 隔离属性（避免触发「已损坏」提示及 App Translocation 导致 Finder 扩展无法注册）：
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/OpenInTerminal.app
+   ```
+3. 启动 `/Applications/OpenInTerminal.app`（首次启动会自动应用默认配置并发布 Finder 扩展脚本）。
+4. **macOS 15 / 26 / 27 启用 Finder 右键与工具栏扩展**：
+   - 图形界面：`系统设置 → 通用 → 登录项与扩展 → OpenInTerminal Extensions`，开启扩展；
+   - 或在终端执行一行命令立即启用：
+     ```bash
+     pluginkit -a /Applications/OpenInTerminal.app/Contents/PlugIns/OpenInTerminalFinderExtension.appex
+     pluginkit -e use -i wang.jianing.app.OpenInTerminal.OpenInTerminalFinderExtension
+     ```
+5. 首次通过菜单栏打开终端时，系统会弹出自动化控制 Finder 的授权请求，点击「允许」即可。
 
-Wondering which one to choose? If you're all about fancy features and GUI settings, go for `OpenInTerminal`. But if you just want to open your terminal quickly and without fuss, `OpenInTerminal-Lite` is your buddy.
+### 方式二：从源码本地构建
 
-I personally prefer `OpenInTerminal-Lite`. Why? It's a one-click wonder (while the other makes you click twice 😂) and it's more lightweight.
-
-Check **OpenInTerminal-Lite** Docs: [English](./Resources/README-Lite.md) | [中文](./Resources/README-Lite-zh.md) | [Deutsch](./Resources/README-Lite-de.md)
-
-
-## Installation 🖥
-
-> ⚠️ **Important:** Signed builds are no longer provided for **OpenInTerminal**, **OpenInTerminal-Lite**, or **OpenInEditor-Lite**. Before using these apps, please either trust the unsigned binaries or sign them yourself. See the [Configuration](./Resources/README-Config.md) document for how to install and trust unsigned apps.
-
+#### 使用完整 Xcode（推荐）
+无需 Apple Developer 账号即可构建本地可运行的 ad-hoc 签名版本：
+```bash
+./build-unsigned.sh
 ```
-brew install --cask openinterminal
+构建产物位于 `./export/OpenInTerminal.app`，复制到 `/Applications` 并按上方步骤启用即可。
+
+#### 运行偏好设置持久化回归测试
+无需 Xcode，仅需 Xcode Command Line Tools 即可运行：
+```bash
+Tests/SharedPreferences/run.sh
 ```
 
-Or manually download it from [release](https://github.com/Ji4n1ng/OpenInTerminal/releases).
+更多细节（Obsidian CLI 联动、Neovim/Kitty 自定义启动命令、SIP/AMFI 权限排查等）请查阅 [详细配置与常见问题文档](./Resources/README-Config-zh.md)。
 
-## Configuration and FAQ ⚙️
+---
 
-Please check the [Configuration](./Resources/README-Config.md) document.
+## 开源协议与致谢
 
-Note: If you're on macOS 15 and above then you must follow the instructions in this document to make the context menu items appear.
+本项目遵循 **[MIT License](./LICENSE)** 开源，你可以自由使用、修改、分发和二次定制。
 
-## Support ❤️
-
-Open-source projects cannot live long without your help. If you like OpenInTerminal, please consider supporting this project by becoming a sponsor. Your user icon or company logo shows up on the README with a link to your home page.
-
-Become a sponsor through [GitHub Sponsors](https://github.com/sponsors/Ji4n1ng) 💖.
-
-| PayPal | AliPay | WeChat Pay |
-| --- | --- | --- |
-| [paypal.me/ji4ning](https://www.paypal.me/ji4ning) | <img src="./Resources/Support-Alipay.jpg" width="50%"> | <img src="./Resources/Support-WeChatPay.jpg" width="50%"> |
-
-<!-- ### Backers & Sponsors -->
-<!---->
-<!-- <a href="https://github.com/wcoder"><img src="https://avatars.githubusercontent.com/u/766193?v=4" width="10%" style="border-radius:10px;" /></a> -->
-
-
-## Changes 🗒
-
-<details><summary>show all</summary><br>
-<p><strong>version 2.3.9</strong></p>
-<ul>
-<li>Security: Fixed an AppleScript/command injection vulnerability that allowed arbitrary command execution via a crafted folder name when opening it in a non-default terminal or an editor. Thanks to Paul Gerste (<a href="https://www.sonarsource.com">Sonar</a>) for the responsible disclosure.</li>
-<li>Added support for Zed, Emacs, Kakoune, GitKraken, and cmux.</li>
-<li>Added an option to limit global keyboard shortcuts to Finder-only shortcuts. (#251, #243)</li>
-<li>Introduced a new default app icon with automatic light/dark mode support.</li>
-<li>Added an option to display the Finder context menu items in a submenu.</li>
-<li>Fixed the Finder extension icon being rendered as a template icon.</li>
-<li>Improved startup responsiveness by fetching installed applications on a background thread.</li>
-<li>Fixed the keyboard shortcut overlapping the "Open in ..." title in the status bar menu.</li>
-</ul>
-<p><strong>version 2.3.8</strong></p>
-<ul>
-<li>Support "open in neovim" for Alacritty, WezTerm, and kitty users.</li>
-<li>Customize open command for kitty users</li>
-<li>Copy path with escaping</li>
-<li>Support fork, notepad--, Ghostty</li>
-<li>Support nix installed applications</li>
-</ul>
-<p><strong>version 2.3.7</strong></p>
-<ul>
-<li>Support Korean</li>
-<li>Support Warp</li>
-<li>Support WezTerm</li>
-<li>Support Tabby</li>
-<li>Support Fleet</li>
-<li>Support Nova</li>
-<li>Support Cursor</li>
-<li>Support Xcode</li>
-<li>For kitty users: open in a signle instance instead of a new one</li>
-</ul>
-<p><strong>version 2.3.6</strong></p>
-<ul>
-<li>Support German</li>
-<li>Search apps installed by JetBrains Toolbox</li>
-<li>Support Android Studio</li>
-</ul>
-<p><strong>version 2.3.5</strong></p>
-<ul>
-<li>Support dragging to reorder custom menu</li>
-<li>Support Turkish</li>
-<li>Support Typora</li>
-</ul>
-<p><strong>version 2.3.4</strong></p>
-<ul>
-<li>Update icons in context menu</li>
-</ul>
-<p><strong>version 2.3.3</strong></p>
-<ul>
-<li>Fix: cannot open path with white space when using shortcut</li>
-</ul>
-<p><strong>version 2.3.2</strong></p>
-<ul>
-<li>Fix: cannot open path with white space</li>
-</ul>
-<p><strong>version 2.3.1</strong></p>
-<ul>
-<li>Fix: cannot open alacritty</li>
-<li>Feat: add quit button in preferences</li>
-</ul>
-<p><strong>version 2.3.0</strong></p>
-<ul>
-<li>Open custom apps. (Not all apps support)</li>
-<li>Show icon in context menu. (For stability, old Mac models are not recommended to display icons)</li>
-</ul>
-<p><strong>version 2.2.3</strong></p>
-<ul>
-<li>Support kitty</li>
-<li>Open multi-selected files in editors</li>
-</ul>
-<p><strong>version 2.2.2</strong></p>
-<ul>
-<li>Support Italian and Spanish</li>
-<li>Fix: does not show Terminal and TextEdit</li>
-</ul>
-<p><strong>version 2.2.1</strong></p>
-<ul>
-<li>Support JetBrains</li>
-<li>Fix: check whether an application exists</li>
-</ul>
-<p><strong>version 2.2.0</strong></p>
-<ul>
-<li>Custom Finder menu options</li>
-<li>Support Russian</li>
-<li>Support PhpStorm</li>
-<li>Fix: doesn't work when opening desktop in terminal</li>
-</ul>
-<p><strong>version 2.1.1</strong></p>
-<ul>
-<li>Signed the application with the developer account. Bundle ID has changed</li>
-<li>Support Finder Extension Standalone Operation Mode</li>
-<li>Support CotEditor and MacVim</li>
-<li>User can hide context menu items</li>
-<li>Finder context menu item's title will change to the current default terminal or editor</li>
-</ul>
-<p><strong>version 2.0.5</strong></p>
-<ul>
-<li>Fix: check application exist bug</li>
-</ul>
-<p><strong>version 2.0.4</strong></p>
-<ul>
-<li>Support TextMate</li>
-<li>Fix: keyboard shortcut bug</li>
-</ul>
-<p><strong>version 2.0.3</strong></p>
-<ul>
-<li>Fix: Finder context menu icon supports dark mode</li>
-</ul>
-<p><strong>version 2.0.2</strong></p>
-<ul>
-<li>Support Visual Studio Code - Insiders</li>
-<li>Support for hiding the status bar icon</li>
-</ul>
-<p><strong>version 2.0.1</strong></p>
-<ul>
-<li>Support BBEdit</li>
-<li>Add icon in Finder context menu</li>
-<li>Fix: check application folder under home directory</li>
-</ul>
-<p><strong>version 0.10.2</strong></p>
-<ul>
-<li>Fix: Finder context menu does not appear on other disks.</li>
-</ul>
-<p><strong>version 0.10.1</strong></p>
-<ul>
-<li>iTerm will not leave `cd xxx` in history.</li>
-<li>You need to click the `window` button or the `tab` button of iTerm again in `Preferences`.</li>
-</ul>
-<p><strong>version 0.10.0</strong></p>
-<ul>
-<li>Support keyboard shortcuts.</li>
-<li>Support VSCodium.</li>
-</ul>
-<p><strong>version 0.9.1</strong></p>
-<ul>
-<li>Support French.</li>
-</ul>
-<p><strong>version 0.9.0</strong></p>
-<ul>
-<li>OpenInTerminal has been released after several weeks of development. If you have suggestions or there are bugs, please feel free to open an issue.</li>
-</ul>
-<p><strong>version 0.4.1</strong></p>
-<ul>
-<li>Support <code>Alacritty</code></li>
-</ul>
-<p><strong>version 0.4.0</strong></p>
-<ul>
-<li>You can set a default to open a new tab or window when using <code>Terminal</code> and <code>Hyper</code>.</li>
-</ul>
-<p><strong>version 0.3.0</strong></p>
-<ul>
-<li>Change name to <code>OpenInTerminal-Lite</code> (<code>OpenInTerminal</code> will come as a more powerful version in the future.)</li>
-<li>Fix a bug that some special characters in the path would crash the program when opening Hyper.</li>
-</ul>
-<p><strong>version 0.2.0</strong></p>
-<ul>
-<li>Add terminal selector</li>
-<li>Cancel running <code>clear</code> command when opening iTerm</li>
-</ul>
-<p><strong>version 0.1.1</strong></p>
-<ul>
-<li>Support <code>Hyper</code></li>
-<li>Give priority to creating a new tab when opening iTerm</li>
-</ul>
-<p><strong>version 0.1.0</strong></p>
-<ul>
-<li>First release</li>
-</ul>
-<br>
-</details>
-
-## Special Thanks to ❤️
-
-Thanks to all [backers](https://github.com/sponsors/Ji4n1ng) and [contributors](https://github.com/Ji4n1ng/OpenInTerminal/graphs/contributors). Your work makes OpenInTerminal better.
-
-### Reference projects
-
-- [jbtule/cdto](https://github.com/jbtule/cdto)
-- [es-kumagai/OpenTerminal](https://github.com/es-kumagai/OpenTerminal)
-- [tingraldi/SwiftScripting](https://github.com/tingraldi/SwiftScripting)
-- [onmyway133/FinderGo](https://github.com/onmyway133/FinderGo)
-- [Caldis/Mos](https://github.com/Caldis/Mos/)
+- 衷心感谢原项目 **[Ji4n1ng/OpenInTerminal](https://github.com/Ji4n1ng/OpenInTerminal)**（Copyright © 2019 Jianing Wang）及所有上游贡献者（特别是 macOS 26+/27 共享偏好设置修复与安全加固 PR 的贡献者），本项目基于其 MIT 开源代码构建并保留完整上游提交历史与版权声明。
+- 全局快捷键组件基于 [Kentzo/ShortcutRecorder](https://github.com/Kentzo/ShortcutRecorder)。

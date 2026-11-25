@@ -98,7 +98,7 @@ public class DefaultsManager {
     
     public var defaultTerminal: App? {
         get {
-            let terminalName = Defaults[.defaultTerminal] ?? SupportedApps.terminal.name
+            let terminalName = Defaults[.defaultTerminal] ?? SupportedApps.iTerm.name
             // resolve supported apps case-insensitively so the canonical name and bundleId are used
             if let supported = SupportedApps.from(name: terminalName) {
                 return supported.app
@@ -115,7 +115,7 @@ public class DefaultsManager {
     
     public var defaultEditor: App? {
         get {
-            let editorName = Defaults[.defaultEditor] ?? SupportedApps.textEdit.name
+            let editorName = Defaults[.defaultEditor] ?? SupportedApps.sublime.name
             // resolve supported apps case-insensitively so the canonical name and bundleId are used
             if let supported = SupportedApps.from(name: editorName) {
                 return supported.app
@@ -360,14 +360,14 @@ public class DefaultsManager {
         guard isFirstSetup == false else { return }
         logw("First Setup")
         isFirstSetup = true
-        isLaunchAtLogin = false
-        isQuickToggle = false
+        isLaunchAtLogin = true
+        isQuickToggle = true
         quickToggleType = .openWithDefaultTerminal
         isHideStatusItem = false
         isHideContextMenuItems = false
         isContextMenuUseSubmenu = false
-        defaultTerminal = SupportedApps.terminal.app
-        defaultEditor = SupportedApps.textEdit.app
+        defaultTerminal = SupportedApps.iTerm.app
+        defaultEditor = SupportedApps.sublime.app
         setNewOption(.terminal, .window)
         setNewOption(.iTerm, .window)
         isCustomMenuApplyToToolbar = false

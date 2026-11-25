@@ -59,6 +59,9 @@ class AdvancedPreferencesViewController: PreferencesViewController {
             SMLoginItemSetEnabled(Constants.Id.LauncherApp as CFString, false)
             DefaultsManager.shared.removeAllUserDefaults()
             DefaultsManager.shared.firstSetup()
+            if DefaultsManager.shared.isLaunchAtLogin {
+                SMLoginItemSetEnabled(Constants.Id.LauncherApp as CFString, true)
+            }
             let appDelegate = NSApplication.shared.delegate as! AppDelegate
             appDelegate.setStatusToggle()
         default:

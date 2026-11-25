@@ -41,7 +41,9 @@ class FinderSync: FIFinderSync {
     }
     
     override var toolbarItemImage: NSImage {
-        return NSImage(named: "Icon")!
+        let icon = NSImage(named: "CustomFinderExtensionIcon") ?? NSImage(named: "Icon")!
+        icon.isTemplate = true
+        return icon
     }
     
     override func menu(for menuKind: FIMenuKind) -> NSMenu {

@@ -8,6 +8,7 @@
 
 import Cocoa
 import OpenInTerminalCore
+import ServiceManagement
 import ShortcutRecorder
 
 @NSApplicationMain
@@ -28,7 +29,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         SharedPreferences.startHost()
+        let isFirstLaunch = !DefaultsManager.shared.isFirstSetup
         DefaultsManager.shared.firstSetup()
+        if isFirstLaunch && DefaultsManager.shared.isLaunchAtLogin {
+            SMLoginItemSetEnabled(Constants.Id.LauncherApp as CFString, true)
+        }
         SharedPreferences.publish()
         addObserver()
         terminateOpenInTerminalHelper()
@@ -83,8 +88,9 @@ extension AppDelegate {
     // MARK: - Status Bar Item
     
     func setStatusItemIcon() {
-        let icon = NSImage(assetIdentifier: .StatusBarIcon)
-        icon.isTemplate = true // Support Dark Mode
+        let icon = NSImage(named: "CustomStatusBarIcon") ?? NSImage(assetIdentifier: .StatusBarIcon)
+        icon.isTemplate = false
+        icon.size = NSSize(width: 20, height: 20)
         DispatchQueue.main.async {
             self.statusItem.button?.image = icon
         }
