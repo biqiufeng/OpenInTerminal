@@ -161,6 +161,15 @@ public enum SupportedApps: String, CaseIterable {
         case .emacs: return "org.gnu.Emacs"
         }
     }
+
+    /// All known bundle identifiers for LaunchServices discovery (newest version first).
+    public var bundleIds: [String] {
+        switch self {
+        case .sublime: return ["com.sublimetext.4", "com.sublimetext.3"]
+        default:
+            return bundleId.isEmpty ? [] : [bundleId]
+        }
+    }
     
     public var app: App {
         var app = App(name: self.name, type: self.type)

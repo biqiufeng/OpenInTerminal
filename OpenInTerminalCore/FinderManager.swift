@@ -331,7 +331,7 @@ public class FinderManager {
             applications.insert("Neovim")
         }
         // ask LaunchServices by bundle id, so apps are found in any folder
-        for app in SupportedApps.allCases where isApplicationInstalled(bundleId: app.bundleId) {
+        for app in SupportedApps.allCases where app.bundleIds.contains(where: { isApplicationInstalled(bundleId: $0) }) {
             applications.insert(app.name)
         }
         // search by name, for apps without a bundle id
